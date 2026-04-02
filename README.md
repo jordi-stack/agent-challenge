@@ -106,6 +106,12 @@ OPENAI_EMBEDDING_MODEL=Qwen3-Embedding-0.6B
 OPENAI_EMBEDDING_DIMENSIONS=1024
 TAVILY_API_KEY=your_tavily_key_here
 SERVER_PORT=3000
+
+# Nosana API — enables live deployment status on the Infrastructure page
+# Get API key: deploy.nosana.com → Account
+# Get Deployment ID: Nosana dashboard after first deploy
+NOSANA_API_KEY=nos_your_api_key_here
+NOSANA_DEPLOYMENT_ID=your_deployment_id_here
 ```
 
 ## Deploy to Nosana
@@ -113,8 +119,8 @@ SERVER_PORT=3000
 ### Step 1: Build and push Docker image
 
 ```bash
-docker build --network host -t jordistack/probe-web3-intelligence:v7 .
-docker push jordistack/probe-web3-intelligence:v7
+docker build --network host -t jordistack/probe-web3-intelligence:v8 .
+docker push jordistack/probe-web3-intelligence:v8
 ```
 
 The Dockerfile applies the vLLM fix automatically during build and uses nginx (port 80) to serve the frontend at `/` and proxy `/api/*` to ElizaOS.
@@ -123,8 +129,9 @@ The Dockerfile applies the vLLM fix automatically during build and uses nginx (p
 
 1. Go to [deploy.nosana.com](https://deploy.nosana.com)
 2. Create a new deployment with the contents of `nos_job_def/nosana_eliza_job_definition.json`
-3. Set `TAVILY_API_KEY` to your actual key
-4. Strategy: **Infinite**, Timeout: **6h**
+3. Set `TAVILY_API_KEY`, `NOSANA_API_KEY` to your real values
+4. After deploy, copy the Deployment ID from the dashboard and set it as `NOSANA_DEPLOYMENT_ID`
+5. Strategy: **Infinite**, Timeout: **6h**
 
 ### Step 3: Deploy via Nosana CLI
 
@@ -137,6 +144,29 @@ nosana job post \
   --timeout 300 \
   --api <YOUR_NOSANA_API_KEY>
 ```
+
+## Nosana API Integration
+
+PROBE calls the [Nosana REST API](https://learn.nosana.com/api/intro.html) (`https://dashboard.k8s.prd.nos.ci/api`) at two levels:
+
+**Backend (`src/utils/nosana-client.ts`):**
+- `GET /deployments/{id}` — deployment status, market, strategy, replicas, timeout
+- `GET /credits` — remaining NOS credit balance
+- Called by the `CHECK_INFRASTRUCTURE` action and `infrastructure` provider, so the agent itself is aware of its own Nosana deployment state
+
+**Container (`start.sh`):**
+- Background loop polls both endpoints every 60 seconds
+- Writes results to `/app/frontend/out/nosana-status.json` (served as a static file by nginx)
+- Frontend fetches `/nosana-status.json` without exposing the API key to the browser
+
+**Frontend (`frontend/app/infrastructure/page.tsx`):**
+- Displays live deployment data: ID, status, market, strategy, replicas, timeout
+- Shows remaining NOS credits
+- Refreshes every 60 seconds
+
+### Deployment Strategy
+
+PROBE uses the **INFINITE** strategy because it runs a persistent ElizaOS server that must stay alive across multiple research requests. A `SIMPLE` job would terminate after the timeout, ending the session. `INFINITE` keeps the agent running until explicitly stopped, which is the right model for an always-on research assistant.
 
 ## Project Structure
 
@@ -162,7 +192,8 @@ agent-challenge/
 │   └── utils/
 │       ├── research-store.ts       # In-memory research persistence
 │       ├── metrics.ts              # Runtime metrics collection
-│       └── web-search.ts           # Tavily integration
+│       ├── web-search.ts           # Tavily integration
+│       └── nosana-client.ts        # Nosana REST API client (deployment + credits)
 ├── frontend/                       # Next.js 16 dashboard
 │   └── app/
 │       ├── page.tsx                # Research page (main)
