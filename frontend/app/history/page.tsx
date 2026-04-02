@@ -5,6 +5,7 @@ import { History, Search, Clock, FileText } from "lucide-react";
 import { FloatingCard } from "../components/floating-card";
 import { ReportDrawer } from "../components/report-drawer";
 import { EmptyState } from "../components/empty-state";
+import { useLocalStorage } from "../lib/use-local-storage";
 import { motion } from "framer-motion";
 
 interface ResearchEntry {
@@ -16,25 +17,6 @@ interface ResearchEntry {
   report: string;
 }
 
-const DEMO_HISTORY: ResearchEntry[] = [
-  {
-    id: "demo-1",
-    topic: "Nosana Protocol",
-    status: "completed",
-    confidence: 82,
-    createdAt: "2026-03-30T01:00:00.000Z",
-    report: "## Nosana Protocol Overview\n\nNosana is a decentralized GPU compute network built on Solana, providing affordable and accessible compute power for AI inference workloads.\n\n### Key Findings\n\n- **Network Size**: 2,400+ active GPU nodes across the network\n- **Blockchain**: Built on Solana for fast, low-cost transactions\n- **Use Case**: Primarily focused on AI model inference and container workloads\n- **Token**: NOS token used for payments and staking\n\n### Market Position\n\nNosana positions itself as an alternative to centralized cloud providers (AWS, GCP) for AI workloads. The decentralized approach offers cost savings of 50-80% compared to traditional cloud GPU pricing.\n\n### Community Sentiment\n\nGenerally positive. The developer community appreciates the OpenClaw philosophy of reclaiming AI compute from Big Tech. Active Discord with 15k+ members.\n\n**Confidence: 82%**",
-  },
-  {
-    id: "demo-2",
-    topic: "Solana DeFi Ecosystem",
-    status: "completed",
-    confidence: 75,
-    createdAt: "2026-03-29T23:00:00.000Z",
-    report: "## Solana DeFi Ecosystem Analysis\n\nThe Solana DeFi ecosystem has grown substantially, with TVL reaching $8.2B across major protocols.\n\n### Top Protocols\n\n- **Jupiter**: Leading DEX aggregator, processing $2B+ daily volume\n- **Raydium**: Primary AMM with deep liquidity pools\n- **Marinade**: Liquid staking leader with 8M+ SOL staked\n- **Drift**: Perpetuals DEX gaining market share\n\n### Trends\n\n- Liquid staking tokens (LSTs) gaining adoption\n- Cross-chain bridges improving Solana connectivity\n- NFT-Fi emerging as a new vertical\n\n**Confidence: 75%**",
-  },
-];
-
 const PROBES = [
   { label: "SCOUT", color: "#22d3ee" },
   { label: "ANALYST", color: "#a78bfa" },
@@ -42,7 +24,7 @@ const PROBES = [
 ];
 
 export default function HistoryPage() {
-  const [entries] = useState<ResearchEntry[]>(DEMO_HISTORY);
+  const [entries] = useLocalStorage<ResearchEntry[]>("probe-history", []);
   const [searchQuery, setSearchQuery] = useState("");
   const [drawerEntry, setDrawerEntry] = useState<ResearchEntry | null>(null);
 

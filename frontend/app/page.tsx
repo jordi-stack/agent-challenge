@@ -11,6 +11,8 @@ import { HowItWorksModal } from "./components/how-it-works-modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { sendToAgent, checkAgentHealth } from "./lib/eliza-client";
 
+const HISTORY_KEY = "probe-history";
+
 type ProbeStatus = "idle" | "searching" | "complete" | "error";
 
 interface ResearchState {
@@ -155,11 +157,27 @@ export default function ResearchPage() {
 
         triggerCompletionBurst();
 
+        const confidence = extractConfidence(response);
+
+        // Save to history
+        try {
+          const entry = {
+            id: Date.now().toString(),
+            topic,
+            status: "completed",
+            confidence,
+            createdAt: new Date().toISOString(),
+            report: response,
+          };
+          const existing = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+          localStorage.setItem(HISTORY_KEY, JSON.stringify([entry, ...existing].slice(0, 20)));
+        } catch {}
+
         setState((s) => ({
           ...s,
           synthesizing: false,
           report: response,
-          confidence: extractConfidence(response),
+          confidence,
         }));
       } catch (err) {
         timers.forEach(clearTimeout);
