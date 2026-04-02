@@ -16,6 +16,8 @@ import {
 } from "../utils/research-store";
 import { recordRequest } from "../utils/metrics";
 import { searchWeb, formatSearchResults } from "../utils/web-search";
+import { getDefiLlamaContext } from "../utils/defillama-client";
+import { getCMCContext } from "../utils/cmc-client";
 import type { ProbeFinding, ResearchReport, ProbeType } from "../types/index";
 
 const LLM_URL = process.env.OPENAI_API_URL || "https://4ksj3tve5bazqwkuyqdhwdpcar4yutcuxphwhckrdxmu.node.k8s.prd.nos.ci/v1";
@@ -148,8 +150,24 @@ async function runProbe(
 
   console.log(`[PROBE:${probeType}] ${uniqueResults.length} unique web results from ${searchQueries.length} searches`);
 
-  // Build enriched prompt: web results FIRST, then analysis instruction
-  const enrichedQuery = `--- LIVE WEB SEARCH RESULTS (${uniqueResults.length} sources found) ---\n${webContext}\n--- END WEB RESULTS ---\n\nRESEARCH TASK: ${analysisQuery}\n\nINSTRUCTIONS: You MUST use the web search results above as your PRIMARY source. Reference specific findings from the search results and cite their URLs. Supplement with your own knowledge only where the search results have gaps. Every claim should have a source URL where possible.`;
+  // Analyst probe: fetch live market data from DefiLlama + CMC in parallel
+  let liveMarketBlock = "";
+  if (probeType === "analyst") {
+    const [llamaCtx, cmcCtx] = await Promise.allSettled([
+      getDefiLlamaContext(topic),
+      getCMCContext(topic),
+    ]);
+    const parts: string[] = [];
+    if (llamaCtx.status === "fulfilled" && llamaCtx.value) parts.push(llamaCtx.value);
+    if (cmcCtx.status === "fulfilled" && cmcCtx.value) parts.push(cmcCtx.value);
+    if (parts.length > 0) {
+      liveMarketBlock = `\n\n--- REAL-TIME MARKET DATA ---\n${parts.join("\n\n")}\n--- END REAL-TIME DATA ---`;
+      console.log(`[PROBE:analyst] Live market data: DefiLlama=${llamaCtx.status === "fulfilled" && !!llamaCtx.value}, CMC=${cmcCtx.status === "fulfilled" && !!cmcCtx.value}`);
+    }
+  }
+
+  // Build enriched prompt: web results FIRST, then live market data, then analysis instruction
+  const enrichedQuery = `--- LIVE WEB SEARCH RESULTS (${uniqueResults.length} sources found) ---\n${webContext}\n--- END WEB RESULTS ---${liveMarketBlock}\n\nRESEARCH TASK: ${analysisQuery}\n\nINSTRUCTIONS: You MUST use the web search results above as your PRIMARY source. Reference specific findings from the search results and cite their URLs. If real-time market data is provided above, use those exact figures for prices, TVL, and volumes — they are live data fetched seconds ago. Supplement with your own knowledge only where the search results have gaps. Every claim should have a source URL where possible.`;
 
   const result = await callLLM(runtime, persona.systemPrompt, enrichedQuery);
 
