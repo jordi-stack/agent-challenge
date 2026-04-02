@@ -54,7 +54,7 @@ Next.js 16 dashboard with 5 pages:
 | Web Search | Tavily API |
 | Nosana Integration | Nosana REST API (deployment status + credits) |
 | Frontend | Next.js 16, Tailwind CSS v4, Framer Motion, Recharts |
-| Deployment | Nosana Decentralized GPU Network (NVIDIA 3060) |
+| Deployment | Nosana Decentralized GPU Network |
 | Blockchain | Solana |
 
 ## Quick Start
@@ -174,7 +174,11 @@ PROBE uses the **INFINITE** strategy because it runs a persistent ElizaOS server
 
 ### Why nvidia-3060
 
-The NVIDIA 3060 runs Qwen/Qwen3.5-4B (4B parameter quantized model) without bottleneck. The 4B model fits in 12GB VRAM with headroom to spare, and the 3060 costs significantly less per hour than a 4090 or A100. For a sequential 5-call inference pipeline, bandwidth beats raw compute.
+PROBE's Docker container (ElizaOS agent + nginx) runs on an NVIDIA 3060 node, but the 3060 does no model inference. All LLM calls go to a separate Nosana-provided vLLM endpoint (`4ksj3tve5bazq...node.k8s.prd.nos.ci/v1`) that serves Qwen/Qwen3.5-4B on dedicated inference hardware.
+
+The 3060 is the right choice for the container host: it runs a Node.js process and nginx, which need RAM and CPU, not VRAM. Using a cheaper GPU tier for the agent container keeps cost down while the inference endpoint handles the heavy compute separately.
+
+This means PROBE uses Nosana at two layers: container hosting and model inference, both on decentralized GPU infrastructure.
 
 ## Project Structure
 
@@ -245,16 +249,6 @@ rm -rf .eliza && elizaos dev
 **Infrastructure page shows "Offline":** Check that nginx is proxying `/api/*` to ElizaOS on port 3000. The frontend uses relative URLs built with `NEXT_PUBLIC_AGENT_API=""`.
 
 **vLLM fix not applied:** Docker build will now fail with an explicit error if `plugin-openai` dist file is not found. Check build logs for `vLLM fix applied to:` confirmation.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=jordi-stack%2Fagent-challenge&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=jordi-stack/agent-challenge&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=jordi-stack/agent-challenge&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=jordi-stack/agent-challenge&type=date&legend=top-left" />
- </picture>
-</a>
 
 ## License
 
