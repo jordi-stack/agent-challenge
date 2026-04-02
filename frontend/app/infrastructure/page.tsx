@@ -24,7 +24,7 @@ interface HistoryPoint {
   latency: number;
 }
 
-const AGENT_API = process.env.NEXT_PUBLIC_AGENT_API || "http://localhost:3000";
+const AGENT_API = process.env.NEXT_PUBLIC_AGENT_API ?? "http://localhost:3000";
 
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
