@@ -110,9 +110,17 @@ export default function InfrastructurePage() {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [nosana, setNosana] = useState<NosanaStatus | null>(null);
+  const [containerStartedAt, setContainerStartedAt] = useState<number | null>(null);
   const historyRef = useRef<HistoryPoint[]>([]);
-  const startTimeRef = useRef<number>(Date.now());
   const requestCountRef = useRef<number>(0);
+
+  // Fetch real container start time written by start.sh — persists across page refreshes
+  useEffect(() => {
+    fetch("/probe-start.json", { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.startedAt) setContainerStartedAt(new Date(d.startedAt).getTime()); })
+      .catch(() => {});
+  }, []);
 
   // Fetch ElizaOS agent metrics
   useEffect(() => {
@@ -128,7 +136,8 @@ export default function InfrastructurePage() {
           try { await fetch(`${AGENT_API}/api/agents`); } catch {}
           const measuredLatency = Date.now() - latencyStart;
 
-          const uptimeMs = Date.now() - startTimeRef.current;
+          const startMs = containerStartedAt ?? Date.now();
+          const uptimeMs = Date.now() - startMs;
           requestCountRef.current++;
 
           setMetrics({
@@ -138,7 +147,7 @@ export default function InfrastructurePage() {
             model: "Qwen/Qwen3.5-4B",
             endpoint: "Nosana Decentralized GPU Network",
             status: agent?.status || "active",
-            startedAt: new Date(startTimeRef.current).toISOString(),
+            startedAt: new Date(startMs).toISOString(),
           });
           setConnected(true);
 
@@ -158,7 +167,7 @@ export default function InfrastructurePage() {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [containerStartedAt]);
 
   // Fetch Nosana deployment status (written by start.sh polling script)
   useEffect(() => {

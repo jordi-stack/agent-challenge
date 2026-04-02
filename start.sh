@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Write container start time once — frontend reads this for real uptime
+echo '{"startedAt":"'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"}' \
+  > /app/frontend/out/probe-start.json 2>/dev/null
+
 # Poll Nosana API every 60s and write status to static JSON served by nginx
 (while true; do
   if [ -n "$NOSANA_API_KEY" ] && [ -n "$NOSANA_DEPLOYMENT_ID" ]; then
