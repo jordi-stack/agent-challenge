@@ -32,7 +32,7 @@ ENV DO_NOT_TRACK=1
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm bun
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -65,6 +65,7 @@ EXPOSE 80
 
 ENV NODE_ENV=production
 ENV SERVER_PORT=3000
+ENV PATH="/app/node_modules/.bin:$PATH"
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD curl -f http://localhost/api/agents || exit 1

@@ -75,9 +75,14 @@ cp .env.example .env
 # Install dependencies
 pnpm install
 
-# Apply vLLM compatibility fix (required after every pnpm install)
+# Apply vLLM compatibility fix (3 patches, required after every pnpm install)
 FILE=$(find node_modules/.pnpm -path "*/@elizaos/plugin-openai/dist/node/index.node.js" | grep -v patches | head -1)
+
+# Patch 1: Responses API
 sed -i 's/openai\.languageModel(modelName)/openai.chat(modelName)/g' "$FILE"
+
+# Patch 2+3: developer role + disable thinking mode
+printf 'const _origFetch = globalThis.fetch;\nglobalThis.fetch = async (url, opts) => {\n  if (typeof url === "string" && url.includes("/chat/completions") && opts && opts.body) {\n    try {\n      const b = JSON.parse(opts.body);\n      if (b.messages) b.messages.forEach(m => { if (m.role === "developer") m.role = "system"; });\n      b.chat_template_kwargs = { enable_thinking: false };\n      opts = { ...opts, body: JSON.stringify(b) };\n    } catch(e) {}\n  }\n  return _origFetch(url, opts);\n};\n' | cat - "$FILE" > /tmp/fixed.js && mv /tmp/fixed.js "$FILE"
 
 # Start agent (port 3000)
 elizaos dev
@@ -165,7 +170,7 @@ agent-challenge/
 │       ├── watchlist/page.tsx
 │       ├── infrastructure/page.tsx
 │       ├── settings/page.tsx
-│       ├── components/             # 14 components
+│       ├── components/             # 15 components
 │       └── lib/
 │           ├── eliza-client.ts     # ElizaOS v2 messaging API client
 │           └── llm.ts              # Probe persona prompts
