@@ -85,17 +85,15 @@ export default function InfrastructurePage() {
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const healthRes = await fetch(`${AGENT_API}/healthz`);
         const agentsRes = await fetch(`${AGENT_API}/api/agents`);
 
-        if (healthRes.ok && agentsRes.ok) {
-          const healthData = await healthRes.json();
+        if (agentsRes.ok) {
           const agentsData = await agentsRes.json();
           const agent = agentsData.data?.agents?.[0];
 
           // Measure actual round-trip latency
           const latencyStart = Date.now();
-          try { await fetch(`${AGENT_API}/healthz`); } catch {}
+          try { await fetch(`${AGENT_API}/api/agents`); } catch {}
           const measuredLatency = Date.now() - latencyStart;
 
           const uptimeMs = Date.now() - startTimeRef.current;
