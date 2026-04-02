@@ -40,6 +40,7 @@ RUN pnpm install --frozen-lockfile
 # Apply vLLM compatibility fix to plugin-openai
 # Fixes: Responses API (languageModel->chat), developer role, thinking mode
 RUN FILE=$(find node_modules/.pnpm -path "*/@elizaos/plugin-openai/dist/node/index.node.js" | grep -v patches | head -1) && \
+    [ -n "$FILE" ] || { echo "ERROR: plugin-openai dist file not found - vLLM fix cannot be applied"; exit 1; } && \
     sed -i 's/openai\.languageModel(modelName)/openai.chat(modelName)/g' "$FILE" && \
     printf 'const _origFetch = globalThis.fetch;\nglobalThis.fetch = async (url, opts) => {\n  if (typeof url === "string" && url.includes("/chat/completions") && opts && opts.body) {\n    try {\n      const b = JSON.parse(opts.body);\n      if (b.messages) b.messages.forEach(m => { if (m.role === "developer") m.role = "system"; });\n      b.chat_template_kwargs = { enable_thinking: false };\n      opts = { ...opts, body: JSON.stringify(b) };\n    } catch(e) {}\n  }\n  return _origFetch(url, opts);\n};\n' | cat - "$FILE" > /tmp/fixed.js && mv /tmp/fixed.js "$FILE" && \
     echo "vLLM fix applied to: $FILE"
@@ -47,7 +48,9 @@ RUN FILE=$(find node_modules/.pnpm -path "*/@elizaos/plugin-openai/dist/node/ind
 COPY characters/ ./characters/
 COPY src/ ./src/
 COPY tsconfig.json ./
-COPY .env.example ./.env
+COPY .env.example ./.env.example
+# Strip placeholder NOSANA_ vars so runtime-injected values are not shadowed by dotenv
+RUN grep -v '^NOSANA_' .env.example > .env || true
 
 # Frontend static files from builder
 COPY --from=frontend-builder /frontend/out ./frontend/out

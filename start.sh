@@ -10,8 +10,7 @@
       -H "Authorization: Bearer $NOSANA_API_KEY" \
       "https://dashboard.k8s.prd.nos.ci/api/credits" 2>/dev/null)
     UPDATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    printf '{"deployment":%s,"credits":%s,"updatedAt":"%s"}' \
-      "${DEPLOYMENT:-null}" "${CREDITS:-null}" "$UPDATED" \
+    echo '{"deployment":'"${DEPLOYMENT:-null}"',"credits":'"${CREDITS:-null}"',"updatedAt":"'"$UPDATED"'"}' \
       > /app/frontend/out/nosana-status.json 2>/dev/null
   fi
   sleep 60
