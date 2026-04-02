@@ -4,7 +4,7 @@
     {
       "id": "probe-agent",
       "args": {
-        "image": "jordistack/probe-web3-intelligence:v6",
+        "image": "jordistack/probe-web3-intelligence:v7",
         "expose": 80,
         "env": {
           "OPENAI_API_KEY": "nosana",
