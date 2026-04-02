@@ -113,8 +113,8 @@ SERVER_PORT=3000
 ### Step 1: Build and push Docker image
 
 ```bash
-docker build --network host -t jordistack/probe-web3-intelligence:latest .
-docker push jordistack/probe-web3-intelligence:latest
+docker build --network host -t jordistack/probe-web3-intelligence:v3 .
+docker push jordistack/probe-web3-intelligence:v3
 ```
 
 The Dockerfile applies the vLLM fix automatically during build and uses nginx (port 80) to serve the frontend at `/` and proxy `/api/*` to ElizaOS.
