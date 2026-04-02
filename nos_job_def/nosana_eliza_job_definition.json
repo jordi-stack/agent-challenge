@@ -1,4 +1,5 @@
 {
+  "type": "container",
   "ops": [
     {
       "id": "probe-agent",
