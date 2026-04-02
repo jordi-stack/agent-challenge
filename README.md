@@ -2,25 +2,28 @@
 
 Multi-agent Web3 research system built on ElizaOS v2, deployed on Nosana's decentralized GPU network.
 
-PROBE dispatches three specialized research agents (Scout, Analyst, Sentinel) to investigate any Web3 topic from multiple angles, then synthesizes findings into structured intelligence briefings with confidence scores. The agent monitors its own Nosana infrastructure and can report on its deployment health.
+**Live demo:** https://4v5i9m6kwuHL3cork4SpFCQ5hb6Aw51ia8XQYobvKGwk.node.k8s.prd.nos.ci
+
+PROBE dispatches three specialized agents (Scout, Analyst, Sentinel) to investigate any Web3 topic from multiple angles, then synthesizes findings into a structured intelligence briefing with confidence scores. The agent monitors its own Nosana infrastructure and reports live deployment status, GPU market, and credit balance.
 
 ## Architecture
 
-```
-User Input (topic)
-      |
-  COMMANDER -- decomposes topic into 3 focused sub-queries
-      |
-      |-- SCOUT -------- web research: articles, docs, announcements
-      |-- ANALYST ------- data: metrics, prices, on-chain stats
-      |-- SENTINEL ------ sentiment: community opinions, social buzz
-              |
-        SYNTHESIZER ---- merges all findings into structured briefing
+```mermaid
+graph TD
+    U[User Input] --> CMD[COMMANDER\ndecomposes topic into 3 sub-queries]
+    CMD --> S[SCOUT\nweb research: articles, docs, announcements]
+    CMD --> A[ANALYST\ndata: metrics, prices, on-chain stats]
+    CMD --> SN[SENTINEL\nsentiment: community opinions, social buzz]
+    S --> SY[SYNTHESIZER\nmerges all findings into structured briefing]
+    A --> SY
+    SN --> SY
+    SY --> QE[Quality Evaluator\nconfidence scoring]
+    SY --> CE[Completeness Evaluator\ncoverage assessment]
 ```
 
-Probes run sequentially on Nosana's single-GPU vLLM. Each probe runs 2 focused Tavily web searches, places results first in the LLM prompt, and is instructed to cite URLs for every finding.
+Probes run sequentially on Nosana's single-GPU vLLM. Each probe runs 2 focused Tavily web searches, places results first in the LLM prompt, and cites URLs for every finding.
 
-### Plugin
+### ElizaOS Plugin
 
 Full ElizaOS v2 plugin (not just a character file):
 
@@ -37,20 +40,21 @@ Next.js 16 dashboard with 5 pages:
 | Page | Purpose |
 |------|---------|
 | **Research** | Topic input, animated probe node graph, intelligence briefing display |
-| **History** | Past research sessions with saved reports |
+| **History** | Past research sessions saved to localStorage |
 | **Watchlist** | Track projects for periodic re-research |
-| **Infrastructure** | Real-time Nosana deployment health (latency, uptime, model info) |
+| **Infrastructure** | Live Nosana deployment health: status, market, credits, latency |
 | **Settings** | Agent connection and probe behavior configuration |
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
-| Agent Framework | ElizaOS v2 (1.7.2) |
-| Model | Qwen/Qwen3.5-4B via Nosana inference |
+| Agent Framework | ElizaOS v2 |
+| Model | Qwen/Qwen3.5-4B via Nosana vLLM inference |
 | Web Search | Tavily API |
+| Nosana Integration | Nosana REST API (deployment status + credits) |
 | Frontend | Next.js 16, Tailwind CSS v4, Framer Motion, Recharts |
-| Deployment | Nosana Decentralized GPU Network |
+| Deployment | Nosana Decentralized GPU Network (NVIDIA 3060) |
 | Blockchain | Solana |
 
 ## Quick Start
@@ -70,7 +74,7 @@ cd agent-challenge
 
 # Configure environment
 cp .env.example .env
-# Edit .env: add your TAVILY_API_KEY
+# Edit .env: set TAVILY_API_KEY (and optionally NOSANA_API_KEY + NOSANA_DEPLOYMENT_ID)
 
 # Install dependencies
 pnpm install
@@ -91,8 +95,6 @@ elizaos dev
 cd frontend && npm install && npm run dev
 ```
 
-If you get a DB migration error, run: `rm -rf .eliza && elizaos dev`
-
 ### Environment Variables
 
 ```env
@@ -100,6 +102,8 @@ OPENAI_API_KEY=nosana
 OPENAI_BASE_URL=https://4ksj3tve5bazqwkuyqdhwdpcar4yutcuxphwhckrdxmu.node.k8s.prd.nos.ci/v1
 OPENAI_API_URL=https://4ksj3tve5bazqwkuyqdhwdpcar4yutcuxphwhckrdxmu.node.k8s.prd.nos.ci/v1
 MODEL_NAME=Qwen/Qwen3.5-4B
+OPENAI_SMALL_MODEL=Qwen/Qwen3.5-4B
+OPENAI_LARGE_MODEL=Qwen/Qwen3.5-4B
 OPENAI_EMBEDDING_URL=https://4yiccatpyxx773jtewo5ccwhw1s2hezq5pehndb6fcfq.node.k8s.prd.nos.ci/v1
 OPENAI_EMBEDDING_API_KEY=nosana
 OPENAI_EMBEDDING_MODEL=Qwen3-Embedding-0.6B
@@ -129,7 +133,7 @@ The Dockerfile applies the vLLM fix automatically during build and uses nginx (p
 
 1. Go to [deploy.nosana.com](https://deploy.nosana.com)
 2. Create a new deployment with the contents of `nos_job_def/nosana_eliza_job_definition.json`
-3. Set `TAVILY_API_KEY`, `NOSANA_API_KEY` to your real values
+3. Set `TAVILY_API_KEY` and `NOSANA_API_KEY` to your real values
 4. After deploy, copy the Deployment ID from the dashboard and set it as `NOSANA_DEPLOYMENT_ID`
 5. Strategy: **Infinite**, Timeout: **6h**
 
@@ -140,8 +144,8 @@ npm install -g @nosana/cli
 
 nosana job post \
   --file ./nos_job_def/nosana_eliza_job_definition.json \
-  --market nvidia-3090 \
-  --timeout 300 \
+  --market nvidia-3060 \
+  --timeout 21600 \
   --api <YOUR_NOSANA_API_KEY>
 ```
 
@@ -152,21 +156,25 @@ PROBE calls the [Nosana REST API](https://learn.nosana.com/api/intro.html) (`htt
 **Backend (`src/utils/nosana-client.ts`):**
 - `GET /deployments/{id}` — deployment status, market, strategy, replicas, timeout
 - `GET /credits` — remaining NOS credit balance
-- Called by the `CHECK_INFRASTRUCTURE` action and `infrastructure` provider, so the agent itself is aware of its own Nosana deployment state
+- Used by the `CHECK_INFRASTRUCTURE` action and `infrastructure` provider, so the agent itself knows its own Nosana deployment state
 
 **Container (`start.sh`):**
 - Background loop polls both endpoints every 60 seconds
-- Writes results to `/app/frontend/out/nosana-status.json` (served as a static file by nginx)
+- Writes results to `/app/frontend/out/nosana-status.json` (nginx serves it as a static file)
 - Frontend fetches `/nosana-status.json` without exposing the API key to the browser
 
 **Frontend (`frontend/app/infrastructure/page.tsx`):**
 - Displays live deployment data: ID, status, market, strategy, replicas, timeout
-- Shows remaining NOS credits
+- Shows remaining NOS credit balance
 - Refreshes every 60 seconds
 
 ### Deployment Strategy
 
-PROBE uses the **INFINITE** strategy because it runs a persistent ElizaOS server that must stay alive across multiple research requests. A `SIMPLE` job would terminate after the timeout, ending the session. `INFINITE` keeps the agent running until explicitly stopped, which is the right model for an always-on research assistant.
+PROBE uses the **INFINITE** strategy because it runs a persistent ElizaOS server across multiple research requests. A `SIMPLE` job terminates after the timeout. `INFINITE` keeps the agent alive until manually stopped, which matches the always-on research assistant model.
+
+### Why nvidia-3060
+
+The NVIDIA 3060 runs Qwen/Qwen3.5-4B (4B parameter quantized model) without bottleneck. The 4B model fits in 12GB VRAM with headroom to spare, and the 3060 costs significantly less per hour than a 4090 or A100. For a sequential 5-call inference pipeline, bandwidth beats raw compute.
 
 ## Project Structure
 
@@ -182,7 +190,7 @@ agent-challenge/
 │   ├── providers/
 │   │   ├── research-state.ts       # Active research tracking
 │   │   ├── history.ts              # Past research access
-│   │   └── infrastructure.ts       # Runtime metrics
+│   │   └── infrastructure.ts       # Runtime metrics + Nosana deployment state
 │   ├── evaluators/
 │   │   ├── quality.ts              # Confidence scoring
 │   │   └── completeness.ts         # Coverage assessment
@@ -208,8 +216,8 @@ agent-challenge/
 ├── nos_job_def/
 │   └── nosana_eliza_job_definition.json
 ├── Dockerfile                      # Multi-stage: nginx + ElizaOS, port 80
-├── nginx.conf                      # Reverse proxy config
-└── start.sh                        # Container startup script
+├── nginx.conf                      # Reverse proxy config (400s timeout for long research)
+└── start.sh                        # Startup: Nosana polling + ElizaOS restart loop + nginx
 ```
 
 ## How PROBE Works
@@ -217,21 +225,34 @@ agent-challenge/
 1. You enter a topic (e.g., "io.net GPU marketplace")
 2. **Commander** decomposes it into 3 focused sub-queries
 3. **Scout** runs 2 Tavily searches for recent news and documentation
-4. **Analyst** runs 2 Tavily searches for price, market cap, and metrics
-5. **Sentinel** runs 2 Tavily searches for community sentiment and opinions
+4. **Analyst** runs 2 Tavily searches for price, market cap, and on-chain metrics
+5. **Sentinel** runs 2 Tavily searches for community sentiment and social buzz
 6. **Synthesizer** merges all findings into a structured intelligence briefing
 7. **Quality Evaluator** scores confidence based on URL citations, data points, structure
 8. **Completeness Evaluator** checks all research angles were covered
 
 Total: 5 LLM calls + 6 web searches per research session (~90-150 seconds).
 
+## Troubleshooting
+
+**DB migration error** (`Failed query: CREATE SCHEMA IF NOT EXISTS migrations`):
+```bash
+rm -rf .eliza && elizaos dev
+```
+
+**Agent not responding after deploy:** ElizaOS takes 30-60 seconds to fully initialize after container start. Wait and refresh.
+
+**Infrastructure page shows "Offline":** Check that nginx is proxying `/api/*` to ElizaOS on port 3000. The frontend uses relative URLs built with `NEXT_PUBLIC_AGENT_API=""`.
+
+**vLLM fix not applied:** Docker build will now fail with an explicit error if `plugin-openai` dist file is not found. Check build logs for `vLLM fix applied to:` confirmation.
+
 ## Star History
 
-<a href="https://www.star-history.com/?repos=nosana-ci%2Fagent-challenge&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=jordi-stack%2Fagent-challenge&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=nosana-ci/agent-challenge&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=nosana-ci/agent-challenge&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=nosana-ci/agent-challenge&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=jordi-stack/agent-challenge&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=jordi-stack/agent-challenge&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=jordi-stack/agent-challenge&type=date&legend=top-left" />
  </picture>
 </a>
 
