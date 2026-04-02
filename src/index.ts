@@ -1,42 +1,51 @@
 /**
- * Custom Plugin Entry Point
+ * PROBE - Web3 Intelligence Swarm Project
  *
- * This file is where you can define custom actions, providers, and evaluators
- * for your ElizaOS agent. Add your logic here and reference this plugin in
- * your character file.
+ * Multi-agent research system that dispatches specialized probes
+ * (Scout, Analyst, Sentinel) to investigate Web3 topics from
+ * multiple angles, then synthesizes findings into structured
+ * intelligence briefings with confidence scores.
  *
- * ElizaOS Plugin Docs: https://elizaos.github.io/eliza/docs/core/plugins
+ * Self-aware of its Nosana decentralized GPU deployment.
  */
 
 import { type Plugin } from "@elizaos/core";
+import { researchTopicAction } from "./actions/research-topic";
+import { checkInfraAction } from "./actions/check-infra";
+import { researchStateProvider } from "./providers/research-state";
+import { historyProvider } from "./providers/history";
+import { infrastructureProvider } from "./providers/infrastructure";
+import { qualityEvaluator } from "./evaluators/quality";
+import { completenessEvaluator } from "./evaluators/completeness";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
-/**
- * Example custom action.
- * Replace this with your own action logic.
- */
-const exampleAction = {
-  name: "EXAMPLE_ACTION",
-  description: "An example action — replace with your own.",
-  similes: ["DEMO", "SAMPLE"],
-  validate: async () => true,
-  handler: async (_runtime: unknown, message: { content: { text: string } }) => {
-    console.log("Custom action triggered with message:", message.content.text);
-    return true;
-  },
-  examples: [],
+const probePlugin: Plugin = {
+  name: "probe-web3-intelligence",
+  description:
+    "Multi-agent Web3 research swarm with Scout, Analyst, and Sentinel probes. Synthesizes findings into structured intelligence briefings. Self-aware of Nosana infrastructure.",
+  actions: [researchTopicAction, checkInfraAction],
+  providers: [researchStateProvider, historyProvider, infrastructureProvider],
+  evaluators: [qualityEvaluator, completenessEvaluator],
 };
 
-/**
- * Your custom plugin.
- * Add this plugin's name to the `plugins` array in your character file
- * to activate it.
- */
-export const customPlugin: Plugin = {
-  name: "custom-plugin",
-  description: "My custom ElizaOS plugin",
-  actions: [exampleAction],
-  providers: [],
-  evaluators: [],
-};
+// Load character from JSON file
+const __filename2 = fileURLToPath(import.meta.url);
+const __dirname2 = dirname(__filename2);
+const characterPath = resolve(__dirname2, "../characters/probe.character.json");
+const character = JSON.parse(readFileSync(characterPath, "utf8"));
 
-export default customPlugin;
+// Export as project agents format (NOT plugin format)
+// This prevents ElizaOS CLI from treating it as a plugin and wrapping in test agent
+export default {
+  agents: [
+    {
+      character,
+      plugins: [probePlugin],
+      init: async () => {
+        console.log("[PROBE] Initializing Web3 Intelligence Swarm...");
+      },
+    },
+  ],
+};

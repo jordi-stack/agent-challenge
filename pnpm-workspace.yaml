@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - '@elizaos/plugin-ollama'
+  - bcrypt
+  - better-sqlite3
+  - bun
+  - esbuild

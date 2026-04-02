@@ -1,20 +1,27 @@
 {
-  "name": "nosana-eliza-agent",
-  "version": "0.1.0",
+  "name": "probe-web3-intelligence",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "src/index.ts",
+  "packageType": "project",
+  "keywords": ["elizaos", "plugin", "web3", "research"],
   "scripts": {
-    "start": "elizaos start --character ./characters/agent.character.json",
-    "dev": "elizaos dev --character ./characters/agent.character.json"
+    "start": "elizaos start",
+    "dev": "elizaos dev"
   },
   "dependencies": {
     "@elizaos/core": "^1.0.0",
-    "@elizaos/plugin-anthropic": "^1.5.12",
     "@elizaos/plugin-bootstrap": "^1.0.0",
-    "@elizaos/plugin-openai": "^1.0.0"
+    "@elizaos/plugin-openai": "^1.0.0",
+    "@elizaos/plugin-web-search": "^1.0.0",
+    "better-sqlite3": "^11.0.0",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@elizaos/cli": "^1.0.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/uuid": "^10.0.0",
     "typescript": "^5.0.0"
   }
 }
