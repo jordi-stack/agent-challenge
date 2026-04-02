@@ -4,7 +4,7 @@ Multi-agent Web3 research system built on ElizaOS v2, deployed on Nosana's decen
 
 **Live demo:** https://4v5i9m6kwuHL3cork4SpFCQ5hb6Aw51ia8XQYobvKGwk.node.k8s.prd.nos.ci
 
-PROBE dispatches three specialized agents (Scout, Analyst, Sentinel) to investigate any Web3 topic from multiple angles, then synthesizes findings into a structured intelligence briefing with confidence scores. The agent monitors its own Nosana infrastructure and reports live deployment status, GPU market, and credit balance.
+PROBE runs five specialized components: Commander decomposes your topic into focused sub-queries, Scout, Analyst, and Sentinel each run parallel web searches from different angles, and Synthesizer merges all findings into a structured intelligence briefing with confidence scores. The agent monitors its own Nosana infrastructure and reports live deployment status, GPU market, and credit balance.
 
 ## Architecture
 
@@ -123,8 +123,8 @@ NOSANA_DEPLOYMENT_ID=your_deployment_id_here
 ### Step 1: Build and push Docker image
 
 ```bash
-docker build --network host -t jordistack/probe-web3-intelligence:v10 .
-docker push jordistack/probe-web3-intelligence:v10
+docker build --network host -t jordistack/probe-web3-intelligence:v11 .
+docker push jordistack/probe-web3-intelligence:v11
 ```
 
 The Dockerfile applies the vLLM fix automatically during build and uses nginx (port 80) to serve the frontend at `/` and proxy `/api/*` to ElizaOS.
@@ -216,7 +216,8 @@ agent-challenge/
 │       ├── components/             # 15 components
 │       └── lib/
 │           ├── eliza-client.ts     # ElizaOS v2 messaging API client
-│           └── llm.ts              # Probe persona prompts
+│           ├── llm.ts              # Probe persona prompts
+│           └── use-local-storage.ts # localStorage persistence hook
 ├── nos_job_def/
 │   └── nosana_eliza_job_definition.json
 ├── Dockerfile                      # Multi-stage: nginx + ElizaOS, port 80

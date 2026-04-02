@@ -7,7 +7,6 @@ import { FloatingCard } from "../components/floating-card";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function SettingsPage() {
-  const [agentUrl, setAgentUrl] = useLocalStorage("probe-agent-url", "http://localhost:3000");
   const [probeConfig, setProbeConfig] = useLocalStorage("probe-config", {
     scout: true,
     analyst: true,
@@ -45,16 +44,24 @@ export default function SettingsPage() {
         <h2 className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-4">
           Agent Connection
         </h2>
-        <div>
-          <label className="block text-xs text-[var(--muted)] mb-2">
-            ElizaOS Agent URL
-          </label>
-          <input
-            type="text"
-            value={agentUrl}
-            onChange={(e) => setAgentUrl(e.target.value)}
-            className="w-full bg-[var(--background)] border border-[var(--card-border)] rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)] transition-colors"
-          />
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[var(--success)]" />
+            <span className="text-xs text-[var(--muted)]">Status</span>
+            <span className="text-xs text-[var(--success)] font-medium ml-auto">Connected</span>
+          </div>
+          <div>
+            <label className="block text-xs text-[var(--muted)] mb-2">
+              ElizaOS Agent URL
+            </label>
+            <div className="w-full bg-[var(--background)] border border-[var(--card-border)] rounded-xl px-4 py-2.5 text-sm text-white/50 font-mono cursor-not-allowed select-none flex items-center justify-between">
+              <span>Internal (Nosana nginx proxy)</span>
+              <span className="text-[10px] text-[var(--muted)] bg-[var(--card-border)] px-2 py-0.5 rounded-full">read-only</span>
+            </div>
+            <p className="text-[10px] text-[var(--muted)] mt-1.5">
+              Routed server-side via nginx. Not configurable on live deployment.
+            </p>
+          </div>
         </div>
       </FloatingCard>
 
