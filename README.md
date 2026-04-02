@@ -103,7 +103,181 @@ docker run -p 3000:3000 --env-file .env jordistack/probe-web3-intelligence:lates
 # Push to Docker Hub
 docker push jordistack/probe-web3-intelligence:latest
 
-# Deploy via Nosana CLI
+
+## Configure Your Embedding Model
+
+Nosana provides a hosted **Qwen3-Embedding-0.6B** endpoint for embeddings (used for RAG, semantic search, and memory). Update your `.env`:
+
+```env
+OPENAI_EMBEDDING_URL=https://4yiccatpyxx773jtewo5ccwhw1s2hezq5pehndb6fcfq.node.k8s.prd.nos.ci/v1
+OPENAI_EMBEDDING_API_KEY=nosana
+OPENAI_EMBEDDING_MODEL=Qwen3-Embedding-0.6B
+OPENAI_EMBEDDING_DIMENSIONS=1024
+```
+
+**Model Details:**
+- **Model ID:** `Qwen3-Embedding-0.6B`
+- **Dimensions:** 1024
+- **Provider:** Nosana decentralized inference
+
+---
+
+## Customize Your Agent
+
+### 1. Define your agent's character
+
+Edit `characters/agent.character.json` to define your agent's personality, knowledge, and behavior:
+
+```json
+{
+  "name": "MyAgent",
+  "bio": ["Your agent's backstory and capabilities"],
+  "system": "Your agent's core instructions and behavior",
+  "plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai"],
+  "clients": ["direct"]
+}
+```
+
+### 2. Add plugins
+
+Extend your agent by adding plugins to `package.json` and your character file:
+
+| Plugin | Use Case |
+|--------|----------|
+| `@elizaos/plugin-bootstrap` | Required base plugin |
+| `@elizaos/plugin-openai` | OpenAI-compatible LLM (required for Nosana endpoint) |
+| `@elizaos/plugin-web-search` | Web search capability |
+| `@elizaos/plugin-telegram` | Telegram bot client |
+| `@elizaos/plugin-discord` | Discord bot client |
+| `@elizaos/plugin-twitter` | Twitter/X integration |
+| `@elizaos/plugin-browser` | Browser/web automation |
+| `@elizaos/plugin-sql` | Database access |
+
+Install a plugin:
+```bash
+pnpm add @elizaos/plugin-web-search
+```
+
+Add it to your character file:
+```json
+{
+  "plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai", "@elizaos/plugin-web-search"]
+}
+```
+
+### 3. Build custom actions (optional)
+
+Add your own custom logic in `src/index.ts`. See the example plugin already included.
+
+### 4. Persistent storage
+
+SQLite is configured by default — sufficient for development and small-scale agents. For a production-grade personal agent, consider:
+
+- A mounted volume on Nosana
+- External database (PostgreSQL, PlanetScale, etc.)
+- Decentralized storage (Arweave, IPFS)
+
+---
+
+## Deploy to Nosana
+
+> **Important:** For this challenge, you must deploy your agent to Nosana's decentralized infrastructure. Do **not** use the standard `elizaos deploy` command — that deploys to centralized cloud providers. This challenge is about embracing decentralized compute.
+
+**Why Nosana?**
+- **Decentralized** — Your agent runs on a distributed network of GPU providers, not AWS/GCP/Azure
+- **Cost-effective** — Use your free builders credits (no credit card required)
+- **Permissionless** — No vendor lock-in, full control over your infrastructure
+- **Challenge requirement** — All submissions must be deployed on Nosana
+
+### Prerequisites
+
+Before deploying, ensure you have:
+- [Docker](https://docs.docker.com/get-docker/) installed and running
+- A [Docker Hub](https://hub.docker.com/) account (free)
+- Your [Nosana builders credits](https://nosana.com/builders-credits) claimed
+
+### Step 1: Build and Push Your Docker Image
+
+Your agent needs to be containerized and available on a public registry (Docker Hub) so Nosana nodes can pull and run it.
+
+```bash
+# Build your Docker image
+docker build -t yourusername/nosana-eliza-agent:latest .
+
+# Test it locally first (recommended)
+docker run -p 3000:3000 --env-file .env yourusername/nosana-eliza-agent:latest
+
+# Visit http://localhost:3000 to verify it works
+
+# Log in to Docker Hub
+docker login
+
+# Push to Docker Hub (make it public)
+docker push yourusername/nosana-eliza-agent:latest
+```
+
+> **Tip:** Replace `yourusername` with your actual Docker Hub username. Make sure your repository is **public** so Nosana nodes can pull it.
+
+### Step 2: Configure Your Job Definition
+
+Edit `nos_job_def/nosana_eliza_job_definition.json` and update the Docker image reference:
+
+```json
+{
+  "version": "0.1",
+  "type": "container",
+  "meta": {
+    "trigger": "cli"
+  },
+  "ops": [
+    {
+      "type": "container/run",
+      "id": "eliza-agent",
+      "args": {
+        "image": "yourusername/nosana-eliza-agent:latest",  // <- Change this
+        "ports": ["3000:3000"],
+        "env": {
+          "OPENAI_API_KEY": "nosana",
+          "OPENAI_API_URL": "https://6vq2bcqphcansrs9b88ztxfs88oqy7etah2ugudytv2x.node.k8s.prd.nos.ci/v1",
+          "MODEL_NAME": "Qwen3.5-27B-AWQ-4bit"
+        }
+      }
+    }
+  ]
+}
+```
+
+> **Security Note:** For production deployments, avoid hardcoding sensitive environment variables. Consider using Nosana secrets management or external secret stores.
+
+### Step 3: Deploy via Nosana Dashboard (Easiest)
+
+This is the recommended method for beginners:
+
+1. Visit the [Nosana Dashboard](https://dashboard.nosana.com/deploy)
+2. Connect your Solana wallet (you need this for authentication and using credits)
+3. Click **Expand** to open the job definition editor
+4. Copy and paste the contents of your `nos_job_def/nosana_eliza_job_definition.json` file
+5. Select your preferred compute market:
+   - `nvidia-3090` — High performance (recommended for production)
+   - `nvidia-rtx-4090` — Premium performance
+   - `cpu-only` — Budget option (slower inference)
+6. Click **Deploy**
+7. Wait for a node to pick up your job (usually 30-60 seconds)
+8. Once running, you'll receive a public URL to access your agent
+
+### Step 4: Deploy via Nosana CLI (Advanced)
+
+For developers who prefer the command line or want to automate deployments:
+
+1. First get your API key at [https://deploy.nosana.com/account/](https://deploy.nosana.com/account/)
+2. Edit the [Nosana ElizaOS Job Definition File](./nos_job_def/nosana_eliza_job_definition.json)
+3. Learn more about [Nosana Job Definition Here](https://learn.nosana.com/deployments/jobs/job-definition/intro.html)
+
+```bash
+# Install the Nosana CLI globally
+npm install -g @nosana/cli
+
+# Deploy your agent
 nosana job post \
   --file ./nos_job_def/nosana_eliza_job_definition.json \
   --market nvidia-3090 \
@@ -165,6 +339,16 @@ probe-web3-intelligence/
 8. **Completeness Evaluator** checks all angles were covered
 
 Each probe has a distinct personality and system prompt. The frontend visualizes the probes working in real-time with animated data flow.
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=nosana-ci%2Fagent-challenge&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=nosana-ci/agent-challenge&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=nosana-ci/agent-challenge&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=nosana-ci/agent-challenge&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ## License
 
