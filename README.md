@@ -2,7 +2,7 @@
 
 Multi-agent Web3 research system built on ElizaOS v2, deployed on Nosana's decentralized GPU network.
 
-**Live demo:** https://4v5i9m6kwuHL3cork4SpFCQ5hb6Aw51ia8XQYobvKGwk.node.k8s.prd.nos.ci
+**Live demo:** https://2vdsgagfth9ifxcsfzfcbmdbisjg6wajlypulxuagpjy.node.k8s.prd.nos.ci
 
 PROBE runs five specialized components: Commander decomposes your topic into focused sub-queries, Scout, Analyst, and Sentinel each run sequential web searches from their own angle, and Synthesizer merges all findings into a structured intelligence briefing with confidence scores. The agent monitors its own Nosana infrastructure and reports live deployment status, GPU market, and credit balance.
 
@@ -133,8 +133,8 @@ NOSANA_DEPLOYMENT_ID=your_deployment_id_here
 ### Step 1: Build and push Docker image
 
 ```bash
-docker build --network host -t jordistack/probe-web3-intelligence:v12 .
-docker push jordistack/probe-web3-intelligence:v12
+docker build --network host -t jordistack/probe-web3-intelligence:v13 .
+docker push jordistack/probe-web3-intelligence:v13
 ```
 
 The Dockerfile applies the vLLM fix automatically during build and uses nginx (port 80) to serve the frontend at `/` and proxy `/api/*` to ElizaOS.
