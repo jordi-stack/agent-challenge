@@ -28,6 +28,8 @@ graph TD
         NC[Container Node\nnvidia-3060 · ElizaOS + nginx]
         NI[Inference Node\nQwen3.5-4B vLLM]
     end
+    NC -.->|hosts| U
+    NI -.->|LLM inference| CMD
 ```
 
 Probes run sequentially on Nosana's single-GPU vLLM. Each probe runs 2 focused Tavily web searches, places results first in the LLM prompt, and cites URLs for every finding.
