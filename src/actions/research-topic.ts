@@ -12,12 +12,11 @@ import {
   addFinding,
   getFindings,
   setReport,
-  getSession,
 } from "../utils/research-store";
 import { recordRequest } from "../utils/metrics";
-import { searchWeb, formatSearchResults } from "../utils/web-search";
+import { searchWeb } from "../utils/web-search";
 import { getDefiLlamaContext } from "../utils/defillama-client";
-import { getCMCContext } from "../utils/cmc-client";
+import { getCoinGeckoContext } from "../utils/coingecko-client";
 import type { ProbeFinding, ResearchReport, ProbeType } from "../types/index";
 
 const LLM_URL = process.env.OPENAI_API_URL || "https://4ksj3tve5bazqwkuyqdhwdpcar4yutcuxphwhckrdxmu.node.k8s.prd.nos.ci/v1";
@@ -67,43 +66,49 @@ async function callLLM(
 
 /** Extract short search-engine-friendly keywords from a topic + probe focus */
 function buildSearchQueries(topic: string, probeType: ProbeType): string[] {
-  // Extract proper nouns and key crypto/tech terms (capitalized words, known terms)
   const stopWords = new Set(["the","a","an","and","or","of","in","on","at","to","for","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","can","shall","about","with","from","into","through","during","before","after","above","below","between","under","over","how","what","which","who","whom","whose","where","when","why","that","this","these","those","than","versus","including","examining","comparative","analysis","affect","long","term","scale","their","its"]);
 
   const words = topic.split(/[\s,]+/).filter(w => {
     if (w.length < 2) return false;
     const lower = w.toLowerCase().replace(/[^a-z0-9.]/g, "");
     if (stopWords.has(lower)) return false;
-    // Keep: capitalized words (proper nouns), acronyms, terms with dots (io.net)
-    return /^[A-Z]/.test(w) || /^[A-Z]+$/.test(w) || w.includes(".");
+    // Keep: capitalized words (proper nouns), ALL_CAPS acronyms, dot-words (io.net),
+    // and camelCase protocol names like zkSync, stETH, deUSD, rETH, wBTC
+    return /^[A-Z]/.test(w) || /^[A-Z]+$/.test(w) || w.includes(".") || /[a-z][A-Z]/.test(w);
   });
 
   // Fallback: if too few proper nouns, grab meaningful lowercase terms too
+  // Exclude words already in the list (e.g. "io.net" passes both filters)
   if (words.length < 3) {
+    const existing = new Set(words);
     const extras = topic.split(/[\s,]+/).filter(w =>
-      w.length > 4 && !stopWords.has(w.toLowerCase()) && !/^[A-Z]/.test(w)
+      w.length > 4 && !stopWords.has(w.toLowerCase()) && !/^[A-Z]/.test(w) && !existing.has(w)
     ).slice(0, 5);
     words.push(...extras);
   }
 
-  // Split into two groups for broader coverage (max 4 terms each)
-  const half = Math.ceil(words.length / 2);
-  const group1 = words.slice(0, Math.min(half, 4)).join(" ");
-  const group2 = words.slice(half, half + Math.min(4, words.length - half)).join(" ");
+  // anchor = first proper noun — always included in every query to keep context
+  // context = next 2-3 supporting terms for specificity
+  const anchor = words[0] ?? topic.split(/\s+/)[0] ?? topic;
+  const context = words.slice(1, 4).join(" ");
   const all = words.slice(0, 5).join(" ");
 
   const focusMap: Record<string, string[]> = {
+    // Scout: recent news + technical docs/explainers (distinct angles, not both "news")
     scout: [
-      `${group1} latest news 2025`,
-      `${group2} announcements updates 2025`,
+      `${anchor} ${context} latest news update`.trim(),
+      `${anchor} ${context} explained architecture guide`.trim(),
     ],
+    // Analyst: CMC/DefiLlama already covers price, TVL, market cap.
+    // Tavily fills what they don't: network activity, revenue, fees, growth, benchmarks.
     analyst: [
-      `${all} token price market cap`,
-      `${all} GPU pricing cost comparison`,
+      `${anchor} ${context} network metrics statistics`.trim(),
+      `${anchor} revenue fees daily active users growth`.trim(),
     ],
+    // Sentinel: both queries anchored on main protocol — cover positive and negative signals
     sentinel: [
-      `${group1} community sentiment review`,
-      `${group2} developer opinion criticism`,
+      `${anchor} community sentiment opinion`.trim(),
+      `${anchor} risks criticism controversy concerns`.trim(),
     ],
   };
 
@@ -153,16 +158,16 @@ async function runProbe(
   // Analyst probe: fetch live market data from DefiLlama + CMC in parallel
   let liveMarketBlock = "";
   if (probeType === "analyst") {
-    const [llamaCtx, cmcCtx] = await Promise.allSettled([
+    const [llamaCtx, cgCtx] = await Promise.allSettled([
       getDefiLlamaContext(topic),
-      getCMCContext(topic),
+      getCoinGeckoContext(topic),
     ]);
     const parts: string[] = [];
     if (llamaCtx.status === "fulfilled" && llamaCtx.value) parts.push(llamaCtx.value);
-    if (cmcCtx.status === "fulfilled" && cmcCtx.value) parts.push(cmcCtx.value);
+    if (cgCtx.status === "fulfilled" && cgCtx.value) parts.push(cgCtx.value);
     if (parts.length > 0) {
       liveMarketBlock = `\n\n--- REAL-TIME MARKET DATA ---\n${parts.join("\n\n")}\n--- END REAL-TIME DATA ---`;
-      console.log(`[PROBE:analyst] Live market data: DefiLlama=${llamaCtx.status === "fulfilled" && !!llamaCtx.value}, CMC=${cmcCtx.status === "fulfilled" && !!cmcCtx.value}`);
+      console.log(`[PROBE:analyst] Live market data: DefiLlama=${llamaCtx.status === "fulfilled" && !!llamaCtx.value}, CoinGecko=${cgCtx.status === "fulfilled" && !!cgCtx.value}`);
     }
   }
 
@@ -325,7 +330,7 @@ export const researchTopicAction = {
     ];
     return triggers.some((t) => text.includes(t));
   },
-  handler: async (runtime: any, message: any, state: any, options: any, callback: any) => {
+  handler: async (runtime: any, message: any, _state: any, _options: any, callback: any) => {
     const rawText = message?.content?.text || "";
     const topic = rawText
       .replace(/^(research|investigate|analyze|probe|look into|study)\s*/i, "")

@@ -90,6 +90,7 @@ export function HowItWorksModal({ open, onClose }: HowItWorksModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={onClose}
           >
             <motion.div
               className="relative w-full max-w-2xl max-h-[85vh] bg-[var(--card)]/95 backdrop-blur-xl border border-[var(--card-border)] rounded-2xl flex flex-col overflow-hidden"

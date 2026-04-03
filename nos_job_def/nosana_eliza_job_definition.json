@@ -21,8 +21,7 @@
           "SERVER_PORT": "3000",
           "NODE_ENV": "production",
           "NOSANA_API_KEY": "YOUR_NOSANA_API_KEY_HERE",
-          "NOSANA_DEPLOYMENT_ID": "YOUR_NOSANA_DEPLOYMENT_ID_HERE",
-          "COINMARKETCAP_API_KEY": "YOUR_CMC_API_KEY_HERE"
+          "NOSANA_DEPLOYMENT_ID": "YOUR_NOSANA_DEPLOYMENT_ID_HERE"
         }
       },
       "execution": {

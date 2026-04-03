@@ -10,15 +10,24 @@ PROBE runs five specialized components: Commander decomposes your topic into foc
 
 ```mermaid
 graph TD
-    U[User Input] --> CMD[COMMANDER\ndecomposes topic into 3 sub-queries]
-    CMD --> S[SCOUT\nweb research: articles, docs, announcements]
-    CMD --> A[ANALYST\ndata: metrics, prices, on-chain stats]
-    CMD --> SN[SENTINEL\nsentiment: community opinions, social buzz]
-    S --> SY[SYNTHESIZER\nmerges all findings into structured briefing]
-    A --> SY
-    SN --> SY
+    U[User Input] --> CMD[COMMANDER\nDecomposes topic into sub-queries]
+    CMD --> S[SCOUT\nnews · docs · announcements]
+    S --> A[ANALYST\nmetrics · prices · on-chain data]
+    A --> SN[SENTINEL\nsentiment · risks · community]
+    SN --> SY[SYNTHESIZER\nStructured Intelligence Briefing]
     SY --> QE[Quality Evaluator\nconfidence scoring]
     SY --> CE[Completeness Evaluator\ncoverage assessment]
+
+    TAV[Tavily API\n2 searches per probe] -.->|web search| S
+    TAV -.->|web search| A
+    TAV -.->|web search| SN
+    CG[CoinGecko\nlive price · mcap] -.->|free, no key| A
+    DL[DefiLlama\nlive TVL · protocol data] -.->|free, cached 1h| A
+
+    subgraph Nosana Infrastructure
+        NC[Container Node\nnvidia-3060 · ElizaOS + nginx]
+        NI[Inference Node\nQwen3.5-4B vLLM]
+    end
 ```
 
 Probes run sequentially on Nosana's single-GPU vLLM. Each probe runs 2 focused Tavily web searches, places results first in the LLM prompt, and cites URLs for every finding.
@@ -52,6 +61,7 @@ Next.js 16 dashboard with 5 pages:
 | Agent Framework | ElizaOS v2 |
 | Model | Qwen/Qwen3.5-4B via Nosana vLLM inference |
 | Web Search | Tavily API |
+| Market Data | CoinGecko API (free) + DefiLlama API (free) |
 | Nosana Integration | Nosana REST API (deployment status + credits) |
 | Frontend | Next.js 16, Tailwind CSS v4, Framer Motion, Recharts |
 | Deployment | Nosana Decentralized GPU Network |
@@ -123,8 +133,8 @@ NOSANA_DEPLOYMENT_ID=your_deployment_id_here
 ### Step 1: Build and push Docker image
 
 ```bash
-docker build --network host -t jordistack/probe-web3-intelligence:v11 .
-docker push jordistack/probe-web3-intelligence:v11
+docker build --network host -t jordistack/probe-web3-intelligence:v12 .
+docker push jordistack/probe-web3-intelligence:v12
 ```
 
 The Dockerfile applies the vLLM fix automatically during build and uses nginx (port 80) to serve the frontend at `/` and proxy `/api/*` to ElizaOS.
@@ -205,6 +215,8 @@ agent-challenge/
 │       ├── research-store.ts       # In-memory research persistence
 │       ├── metrics.ts              # Runtime metrics collection
 │       ├── web-search.ts           # Tavily integration
+│       ├── defillama-client.ts     # DefiLlama TVL + protocol data (free, cached 1h)
+│       ├── coingecko-client.ts     # CoinGecko price + market cap (free, no key)
 │       └── nosana-client.ts        # Nosana REST API client (deployment + credits)
 ├── frontend/                       # Next.js 16 dashboard
 │   └── app/
@@ -230,7 +242,7 @@ agent-challenge/
 1. You enter a topic (e.g., "io.net GPU marketplace")
 2. **Commander** decomposes it into 3 focused sub-queries
 3. **Scout** runs 2 Tavily searches for recent news and documentation
-4. **Analyst** runs 2 Tavily searches for price, market cap, and on-chain metrics
+4. **Analyst** fetches live price + market cap from CoinGecko and TVL from DefiLlama, then runs 2 Tavily searches for on-chain metrics and revenue data
 5. **Sentinel** runs 2 Tavily searches for community sentiment and social buzz
 6. **Synthesizer** merges all findings into a structured intelligence briefing
 7. **Quality Evaluator** scores confidence based on URL citations, data points, structure
