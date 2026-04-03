@@ -241,7 +241,7 @@ agent-challenge/
 
 ## How PROBE Works
 
-1. You enter a topic (e.g., "io.net GPU marketplace")
+1. You enter a topic (e.g., "Nosana decentralized GPU compute network")
 2. **Commander** decomposes it into 3 focused sub-queries
 3. **Scout** runs 2 Tavily searches for recent news and documentation
 4. **Analyst** fetches live price + market cap from CoinGecko and TVL from DefiLlama, then runs 2 Tavily searches for on-chain metrics and revenue data
