@@ -38,7 +38,7 @@ const STEPS = [
     icon: BarChart3,
     label: "5. Analyst Probe",
     color: "#a78bfa",
-    description: "Extracts quantitative data from search results: token prices, market caps, GPU pricing comparisons, network metrics, and growth statistics.",
+    description: "Fetches live token price and market cap from CoinGecko and TVL data from DefiLlama, then runs Tavily searches for on-chain metrics, revenue, fees, and growth statistics.",
   },
   {
     icon: Shield,
@@ -158,7 +158,7 @@ export function HowItWorksModal({ open, onClose }: HowItWorksModalProps) {
                 <div className="pt-4 border-t border-[var(--card-border)]">
                   <p className="text-[10px] text-[var(--muted)] uppercase tracking-wider mb-2">Tech Stack</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {["ElizaOS v2", "Nosana GPU", "Qwen3.5-4B", "Tavily Search", "Next.js 16", "Solana"].map((tech) => (
+                    {["ElizaOS v2", "Nosana GPU", "Qwen3.5-4B", "Tavily Search", "CoinGecko", "DefiLlama", "Next.js 16", "Solana"].map((tech) => (
                       <span key={tech} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent)]/8 text-[var(--accent)] border border-[var(--accent)]/15">
                         {tech}
                       </span>

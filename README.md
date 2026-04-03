@@ -4,7 +4,7 @@ Multi-agent Web3 research system built on ElizaOS v2, deployed on Nosana's decen
 
 **Live demo:** https://4v5i9m6kwuHL3cork4SpFCQ5hb6Aw51ia8XQYobvKGwk.node.k8s.prd.nos.ci
 
-PROBE runs five specialized components: Commander decomposes your topic into focused sub-queries, Scout, Analyst, and Sentinel each run parallel web searches from different angles, and Synthesizer merges all findings into a structured intelligence briefing with confidence scores. The agent monitors its own Nosana infrastructure and reports live deployment status, GPU market, and credit balance.
+PROBE runs five specialized components: Commander decomposes your topic into focused sub-queries, Scout, Analyst, and Sentinel each run sequential web searches from their own angle, and Synthesizer merges all findings into a structured intelligence briefing with confidence scores. The agent monitors its own Nosana infrastructure and reports live deployment status, GPU market, and credit balance.
 
 ## Architecture
 
@@ -52,7 +52,7 @@ Next.js 16 dashboard with 5 pages:
 | **History** | Past research sessions saved to localStorage |
 | **Watchlist** | Track projects for periodic re-research |
 | **Infrastructure** | Live Nosana deployment health: status, market, credits, latency |
-| **Settings** | Agent connection and probe behavior configuration |
+| **Settings** | Probe behavior configuration |
 
 ## Tech Stack
 
