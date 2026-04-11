@@ -139,7 +139,7 @@ export default function ResearchPage() {
 
       // Send to ElizaOS agent in parallel - the RESEARCH_TOPIC action handles everything
       try {
-        const response = await sendToAgent(`Research ${topic}`, 360000);
+        const response = await sendToAgent(`Research ${topic}`, 480000);
 
         // Report arrived - clear remaining timers and jump to final state
         timers.forEach(clearTimeout);

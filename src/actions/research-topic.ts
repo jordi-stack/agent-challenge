@@ -46,7 +46,7 @@ async function callLLM(
         temperature: 0.7,
         chat_template_kwargs: { enable_thinking: false },
       }),
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(90000),
     });
 
     if (!res.ok) {
