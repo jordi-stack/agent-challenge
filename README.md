@@ -61,7 +61,7 @@ Next.js 16 dashboard with 5 pages:
 | Component | Technology |
 |-----------|-----------|
 | Agent Framework | ElizaOS v2 |
-| Model | Qwen/Qwen3.5-4B via Nosana vLLM inference |
+| Model | Qwen3.5-9B-FP8 via Nosana vLLM inference |
 | Web Search | Tavily API |
 | Market Data | CoinGecko API (free) + DefiLlama API (free) |
 | Nosana Integration | Nosana REST API (deployment status + credits) |
@@ -111,11 +111,11 @@ cd frontend && npm install && npm run dev
 
 ```env
 OPENAI_API_KEY=nosana
-OPENAI_BASE_URL=https://4ksj3tve5bazqwkuyqdhwdpcar4yutcuxphwhckrdxmu.node.k8s.prd.nos.ci/v1
-OPENAI_API_URL=https://4ksj3tve5bazqwkuyqdhwdpcar4yutcuxphwhckrdxmu.node.k8s.prd.nos.ci/v1
-MODEL_NAME=Qwen/Qwen3.5-4B
-OPENAI_SMALL_MODEL=Qwen/Qwen3.5-4B
-OPENAI_LARGE_MODEL=Qwen/Qwen3.5-4B
+OPENAI_BASE_URL=https://5i8frj7ann99bbw9gzpprvzj2esugg39hxbb4unypskq.node.k8s.prd.nos.ci/v1
+OPENAI_API_URL=https://5i8frj7ann99bbw9gzpprvzj2esugg39hxbb4unypskq.node.k8s.prd.nos.ci/v1
+MODEL_NAME=Qwen3.5-9B-FP8
+OPENAI_SMALL_MODEL=Qwen3.5-9B-FP8
+OPENAI_LARGE_MODEL=Qwen3.5-9B-FP8
 OPENAI_EMBEDDING_URL=https://4yiccatpyxx773jtewo5ccwhw1s2hezq5pehndb6fcfq.node.k8s.prd.nos.ci/v1
 OPENAI_EMBEDDING_API_KEY=nosana
 OPENAI_EMBEDDING_MODEL=Qwen3-Embedding-0.6B
@@ -186,7 +186,7 @@ PROBE uses the **INFINITE** strategy because it runs a persistent ElizaOS server
 
 ### Why nvidia-3060
 
-PROBE's Docker container (ElizaOS agent + nginx) runs on an NVIDIA 3060 node, but the 3060 does no model inference. All LLM calls go to a separate Nosana-provided vLLM endpoint (`4ksj3tve5bazq...node.k8s.prd.nos.ci/v1`) that serves Qwen/Qwen3.5-4B on dedicated inference hardware.
+PROBE's Docker container (ElizaOS agent + nginx) runs on an NVIDIA 3060 node, but the 3060 does no model inference. All LLM calls go to a separate Nosana-provided vLLM endpoint (`4ksj3tve5bazq...node.k8s.prd.nos.ci/v1`) that serves Qwen3.5-9B-FP8 on dedicated inference hardware.
 
 The 3060 is the right choice for the container host: it runs a Node.js process and nginx, which need RAM and CPU, not VRAM. Using a cheaper GPU tier for the agent container keeps cost down while the inference endpoint handles the heavy compute separately.
 
