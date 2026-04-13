@@ -26,7 +26,7 @@ graph TD
 
     subgraph Nosana Infrastructure
         NC[Container Node\nnvidia-3060 · ElizaOS + nginx]
-        NI[Inference Node\nQwen3.5-4B vLLM]
+        NI[Inference Node\nQwen3.5-9B-FP8 vLLM]
     end
     NC -.->|hosts| U
     NI -.->|LLM inference| CMD
@@ -135,8 +135,8 @@ NOSANA_DEPLOYMENT_ID=your_deployment_id_here
 ### Step 1: Build and push Docker image
 
 ```bash
-docker build --network host -t jordistack/probe-web3-intelligence:v13 .
-docker push jordistack/probe-web3-intelligence:v13
+docker build --network host -t jordistack/probe-web3-intelligence:v16 .
+docker push jordistack/probe-web3-intelligence:v16
 ```
 
 The Dockerfile applies the vLLM fix automatically during build and uses nginx (port 80) to serve the frontend at `/` and proxy `/api/*` to ElizaOS.
@@ -186,7 +186,7 @@ PROBE uses the **INFINITE** strategy because it runs a persistent ElizaOS server
 
 ### Why nvidia-3060
 
-PROBE's Docker container (ElizaOS agent + nginx) runs on an NVIDIA 3060 node, but the 3060 does no model inference. All LLM calls go to a separate Nosana-provided vLLM endpoint (`4ksj3tve5bazq...node.k8s.prd.nos.ci/v1`) that serves Qwen3.5-9B-FP8 on dedicated inference hardware.
+PROBE's Docker container (ElizaOS agent + nginx) runs on an NVIDIA 3060 node, but the 3060 does no model inference. All LLM calls go to a separate Nosana-provided vLLM endpoint (`5i8frj7ann99b...node.k8s.prd.nos.ci/v1`) that serves Qwen3.5-9B-FP8 on dedicated inference hardware.
 
 The 3060 is the right choice for the container host: it runs a Node.js process and nginx, which need RAM and CPU, not VRAM. Using a cheaper GPU tier for the agent container keeps cost down while the inference endpoint handles the heavy compute separately.
 
@@ -235,7 +235,7 @@ agent-challenge/
 ├── nos_job_def/
 │   └── nosana_eliza_job_definition.json
 ├── Dockerfile                      # Multi-stage: nginx + ElizaOS, port 80
-├── nginx.conf                      # Reverse proxy config (400s timeout for long research)
+├── nginx.conf                      # Reverse proxy config (520s timeout for long research)
 └── start.sh                        # Startup: Nosana polling + ElizaOS restart loop + nginx
 ```
 
@@ -250,7 +250,7 @@ agent-challenge/
 7. **Quality Evaluator** scores confidence based on URL citations, data points, structure
 8. **Completeness Evaluator** checks all research angles were covered
 
-Total: 5 LLM calls + 6 web searches per research session (~90-150 seconds).
+Total: 5 LLM calls + 6 web searches per research session (~120-300 seconds on Qwen3.5-9B-FP8). LLM calls retry up to 2 times with backoff on 5xx errors to handle transient vLLM endpoint failures.
 
 ## Troubleshooting
 
@@ -264,6 +264,8 @@ rm -rf .eliza && elizaos dev
 **Infrastructure page shows "Offline":** Check that nginx is proxying `/api/*` to ElizaOS on port 3000. The frontend uses relative URLs built with `NEXT_PUBLIC_AGENT_API=""`.
 
 **vLLM fix not applied:** Docker build will now fail with an explicit error if `plugin-openai` dist file is not found. Check build logs for `vLLM fix applied to:` confirmation.
+
+**LLM 503 errors during research:** Nosana's inference endpoint can return transient 503/502/504 responses when under load or during cold starts. PROBE retries each LLM call up to 2 times with 2s/5s backoff, so a single blip won't poison the whole report. Sustained 503s indicate the endpoint is down: check https://deploy.nosana.com or the Nosana Discord for status.
 
 ## License
 
