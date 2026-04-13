@@ -29,39 +29,60 @@ async function callLLM(
   userMessage: string
 ): Promise<string> {
   const start = Date.now();
-  try {
-    const res = await fetch(`${LLM_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LLM_KEY}`,
-      },
-      body: JSON.stringify({
-        model: LLM_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
-        max_tokens: 2000,
-        temperature: 0.7,
-        chat_template_kwargs: { enable_thinking: false },
-      }),
-      signal: AbortSignal.timeout(90000),
-    });
+  const maxRetries = 2;
+  const backoffMs = [2000, 5000];
 
-    if (!res.ok) {
-      throw new Error(`LLM responded with ${res.status}`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(`${LLM_URL}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LLM_KEY}`,
+        },
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          max_tokens: 2000,
+          temperature: 0.7,
+          chat_template_kwargs: { enable_thinking: false },
+        }),
+        signal: AbortSignal.timeout(70000),
+      });
+
+      if (res.status === 503 || res.status === 502 || res.status === 504) {
+        if (attempt < maxRetries) {
+          console.warn(`LLM ${res.status}, retry ${attempt + 1}/${maxRetries} in ${backoffMs[attempt]}ms`);
+          await new Promise((r) => setTimeout(r, backoffMs[attempt]));
+          continue;
+        }
+      }
+
+      if (!res.ok) {
+        throw new Error(`LLM responded with ${res.status}`);
+      }
+
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      recordRequest(Date.now() - start);
+      return content;
+    } catch (err) {
+      if (attempt < maxRetries) {
+        console.warn(`LLM fetch error, retry ${attempt + 1}/${maxRetries} in ${backoffMs[attempt]}ms:`, err);
+        await new Promise((r) => setTimeout(r, backoffMs[attempt]));
+        continue;
+      }
+      recordRequest(Date.now() - start);
+      console.error("LLM call failed after retries:", err);
+      return "Error: Unable to generate response.";
     }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    recordRequest(Date.now() - start);
-    return content;
-  } catch (err) {
-    recordRequest(Date.now() - start);
-    console.error("LLM call failed:", err);
-    return "Error: Unable to generate response.";
   }
+
+  recordRequest(Date.now() - start);
+  return "Error: Unable to generate response.";
 }
 
 /** Extract short search-engine-friendly keywords from a topic + probe focus */
