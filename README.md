@@ -267,6 +267,22 @@ rm -rf .eliza && elizaos dev
 
 **LLM 503 errors during research:** Nosana's inference endpoint can return transient 503/502/504 responses when under load or during cold starts. PROBE retries each LLM call up to 2 times with 2s/5s backoff, so a single blip won't poison the whole report. Sustained 503s indicate the endpoint is down: check https://deploy.nosana.com or the Nosana Discord for status.
 
+## Submission Checklist
+
+- [x] Fork this repository and build the agent on the `elizaos-challenge` branch
+- [x] Build a frontend/UI for interacting with the agent ([frontend/](frontend/))
+- [x] Deploy to Nosana and get a public deployment URL
+- [x] Star the following repositories:
+  - [x] [nosana-ci/agent-challenge](https://github.com/nosana-ci/agent-challenge)
+  - [x] [nosana-ci/nosana-programs](https://github.com/nosana-ci/nosana-programs)
+  - [x] [nosana-ci/nosana-kit](https://github.com/nosana-ci/nosana-kit)
+  - [x] [nosana-ci/nosana-cli](https://github.com/nosana-ci/nosana-cli)
+- [x] Social media post: https://x.com/jordialter/status/2043989481255252424
+- [x] GitHub fork link: https://github.com/jordi-stack/agent-challenge
+- [x] Nosana deployment URL: https://2vdsgagfth9ifxcsfzfcbmdbisjg6wajlypulxuagpjy.node.k8s.prd.nos.ci
+- [x] Agent description (see top of this README, under 300 words)
+- [x] Video demo: https://youtu.be/vHn6YVYFDC0
+
 ## License
 
 MIT
